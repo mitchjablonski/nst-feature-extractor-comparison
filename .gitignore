@@ -1,0 +1,21 @@
+# Python / env
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# uv.lock IS committed for reproducibility
+
+# Local tooling & session state (not part of the project)
+.claude/
+.deeppairing/
+
+# Heavy / derived artifacts — fetched by scripts/setup_adm.sh, never committed
+models/
+third_party/
+.cache/
+
+# Scratch run outputs (CLI/compare/sweep write here).
+# The CURATED showcase lives in examples/ and IS committed.
+outputs/
+sweeps/

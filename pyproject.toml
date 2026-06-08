@@ -1,0 +1,47 @@
+[project]
+name = "diffusion-style"
+version = "0.1.0"
+description = "Gatys-style neural style transfer using a frozen Stable Diffusion 1.5 UNet as the feature extractor."
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "torchvision",
+    "diffusers>=0.27",
+    "transformers>=4.40",
+    "accelerate>=0.30",
+    "pillow",
+    "numpy",
+]
+
+[project.optional-dependencies]
+# ADM's runtime deps. The guided_diffusion *code* is NOT pip-installable
+# (openai's setup.py is broken: py_modules instead of packages), so
+# scripts/setup_adm.sh git-clones it into third_party/ and the adm backend adds
+# that to sys.path. Install these runtime deps + clone via: bash scripts/setup_adm.sh
+adm = [
+    "blobfile",
+]
+
+[project.scripts]
+diffusion-style = "diffusion_style.cli:main"
+diffusion-style-sweep = "diffusion_style.sweep:main"
+diffusion-style-compare = "diffusion_style.compare:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Allow the git direct reference in the 'adm' optional dependency.
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# Route torch/torchvision to the CUDA 12.4 wheel index (RTX 3070 supports cu12x).
+# Without this, uv resolves the CPU-only wheels from PyPI.
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+torchvision = { index = "pytorch-cu124" }
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
