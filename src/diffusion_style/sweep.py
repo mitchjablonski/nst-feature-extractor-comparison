@@ -9,12 +9,12 @@ so sweeping it is the diffusion analog of choosing which VGG layers to use.
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from .config import Config
+from .backends import BACKENDS
+from .config import backend_config
 from .transfer import run_transfer
 
 
@@ -51,27 +51,31 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--content", required=True)
     p.add_argument("--style", required=True)
     p.add_argument("--outdir", required=True)
+    p.add_argument("--backend", choices=BACKENDS, default="sd",
+                   help="feature extractor to sweep (timesteps only affect diffusion backends)")
     p.add_argument("--timesteps", default="101,261,461,661",
                    help="comma-separated timesteps (0..999)")
     p.add_argument("--style-weights", default="",
-                   help="optional comma-separated style weights; default uses Config's")
-    p.add_argument("--steps", type=int, default=Config().steps)
-    p.add_argument("--resolution", type=int, default=Config().resolution)
+                   help="optional comma-separated style weights; default uses the backend preset's")
+    p.add_argument("--steps", type=int, help="override the backend preset's step count")
+    p.add_argument("--resolution", type=int, help="override the backend preset's resolution")
     p.add_argument("--cols", type=int, default=0, help="grid columns (0 = #timesteps)")
     args = p.parse_args(argv)
 
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
+    preset = backend_config(args.backend)
     timesteps = _parse_int_list(args.timesteps)
-    style_weights = _parse_float_list(args.style_weights) or [Config().style_weight]
+    style_weights = _parse_float_list(args.style_weights) or [preset.style_weight]
+    overrides = {k: v for k, v in (("steps", args.steps), ("resolution", args.resolution))
+                 if v is not None}
 
     cells: list[tuple[str, Image.Image]] = []
     for sw in style_weights:
         for t in timesteps:
-            config = replace(
-                Config(), timestep=t, style_weight=sw,
-                steps=args.steps, resolution=args.resolution,
+            config = backend_config(
+                args.backend, timestep=t, style_weight=sw, **overrides,
             )
             print(f"running t={t} style_weight={sw:g} ...")
             img = run_transfer(config, args.content, args.style)

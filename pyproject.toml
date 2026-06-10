@@ -1,7 +1,7 @@
 [project]
 name = "diffusion-style"
 version = "0.1.0"
-description = "Gatys-style neural style transfer using a frozen Stable Diffusion 1.5 UNet as the feature extractor."
+description = "Comparison harness for Gatys-style neural style transfer with interchangeable frozen feature extractors (VGG, SD1.5, pixel DDPM, ConvNeXt, DINOv2/v3, ADM)."
 requires-python = ">=3.10"
 dependencies = [
     "torch",
@@ -27,6 +27,11 @@ diffusion-style = "diffusion_style.cli:main"
 diffusion-style-sweep = "diffusion_style.sweep:main"
 diffusion-style-compare = "diffusion_style.compare:main"
 
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -35,11 +40,17 @@ build-backend = "hatchling.build"
 [tool.hatch.metadata]
 allow-direct-references = true
 
-# Route torch/torchvision to the CUDA 12.4 wheel index (RTX 3070 supports cu12x).
-# Without this, uv resolves the CPU-only wheels from PyPI.
+# Route torch/torchvision to the CUDA 12.4 wheel index on Linux/Windows
+# (without this, uv resolves the CPU-only wheels from PyPI). macOS has no CUDA
+# wheels, so it falls back to PyPI (CPU/MPS) — gating on platform keeps
+# `uv sync` working everywhere.
 [tool.uv.sources]
-torch = { index = "pytorch-cu124" }
-torchvision = { index = "pytorch-cu124" }
+torch = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
 
 [[tool.uv.index]]
 name = "pytorch-cu124"

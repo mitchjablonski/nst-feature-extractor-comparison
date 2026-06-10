@@ -1,8 +1,8 @@
-"""Gatys content + Gram-matrix style losses, computed on diffusion features.
+"""Gatys content + Gram-matrix style losses, backend-agnostic.
 
-This is the Gatys method preserved verbatim; only the feature source changed
-(SD1.5 UNet instead of VGG). Losses run in fp32 for stability even though the
-features arrive in fp16.
+This is the Gatys method preserved verbatim; the features may come from any
+backend (VGG, diffusion UNets, ConvNeXt, DINO). Losses run in fp32 for
+stability even when a backend computes features in fp16.
 """
 
 from __future__ import annotations

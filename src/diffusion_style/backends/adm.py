@@ -16,8 +16,12 @@ import torch
 
 from .base import Backend, HookManager
 
+# scripts/setup_adm.sh puts both the guided-diffusion clone and the checkpoint
+# under the repo root; anchor there so ADM works regardless of the CWD.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
 # guided_diffusion is git-cloned (not pip-installable); add it to the path.
-_GD_PATH = Path(__file__).resolve().parents[3] / "third_party" / "guided-diffusion"
+_GD_PATH = _REPO_ROOT / "third_party" / "guided-diffusion"
 if _GD_PATH.is_dir() and str(_GD_PATH) not in sys.path:
     sys.path.insert(0, str(_GD_PATH))
 
@@ -70,7 +74,16 @@ class ADMBackend(Backend):
         args.update(_ADM_256_UNCOND)
         args["image_size"] = config.adm_image_size
         model, diffusion = create_model_and_diffusion(**args)
-        state = torch.load(config.adm_checkpoint, map_location="cpu")
+        ckpt = Path(config.adm_checkpoint)
+        if not ckpt.is_absolute() and not ckpt.exists():
+            ckpt = _REPO_ROOT / ckpt
+        if not ckpt.exists():
+            raise FileNotFoundError(
+                f"ADM checkpoint not found: {config.adm_checkpoint!r} — "
+                "run scripts/setup_adm.sh to download it"
+            )
+        # weights_only: the checkpoint is a plain state dict; never unpickle code.
+        state = torch.load(ckpt, map_location="cpu", weights_only=True)
         model.load_state_dict(state)
         model.eval().requires_grad_(False)
         model.to(self.device)

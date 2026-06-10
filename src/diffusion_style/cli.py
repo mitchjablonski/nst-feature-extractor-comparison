@@ -12,7 +12,7 @@ from .transfer import StepLog, run_transfer
 # "use the backend preset"; only provided flags override the preset.
 _TUNABLES = (
     "steps", "content_weight", "style_weight", "tv_weight",
-    "timestep", "resolution", "lr", "optimizer", "seed",
+    "timestep", "resolution", "lr", "optimizer", "seed", "device",
 )
 
 
@@ -36,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--lr", type=float)
     p.add_argument("--optimizer", choices=("adam", "lbfgs"))
     p.add_argument("--seed", type=int)
+    p.add_argument("--device", help='e.g. "cuda", "cpu", "mps" (default: cuda if available)')
     p.add_argument("--ddpm-model", help="override the pixel DDPM model id")
     return p
 

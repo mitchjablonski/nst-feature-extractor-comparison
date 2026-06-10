@@ -8,6 +8,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import torch
+
+# Default to CUDA when present, otherwise CPU (slow but functional — the
+# feed-forward backends are usable). Override per run with --device
+# (e.g. "mps" on Apple silicon).
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 # The original runwayml/stable-diffusion-v1-5 repo was removed; this is the
 # community-maintained mirror with identical weights.
 DEFAULT_MODEL_ID = "stable-diffusion-v1-5/stable-diffusion-v1-5"
@@ -111,7 +118,7 @@ class Config:
 
     seed: int = 0  # seeds the fixed feature-extraction noise (determinism)
 
-    device: str = "cuda"
+    device: str = DEFAULT_DEVICE
     dtype: str = "float16"  # UNet/VAE compute dtype; the optimized latent stays fp32
 
 

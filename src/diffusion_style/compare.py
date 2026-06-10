@@ -30,6 +30,9 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
 
     names = [b.strip() for b in args.backends.split(",") if b.strip()]
+    unknown = [n for n in names if n not in BACKENDS]
+    if unknown:
+        p.error(f"unknown backend(s): {', '.join(unknown)} (choices: {', '.join(BACKENDS)})")
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 

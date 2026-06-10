@@ -1,8 +1,10 @@
-# diffusion-style
+# diffusion-style (nst-feature-extractor-comparison)
 
 A **comparison harness** for Gatys-style neural style transfer with
 interchangeable frozen feature extractors. Same optimization engine, same
-losses — swap only the "lens" and compare.
+losses — swap only the "lens" and compare. (`diffusion-style` is the package
+name — the project started as "SD features for NST" and grew into this
+comparison.)
 
 The classic [Gatys method](https://arxiv.org/abs/1508.06576) treats a frozen
 network as a fixed lens: you optimize an image so its deep features match a
@@ -90,12 +92,18 @@ access; the `adm` backend needs the one-time `scripts/setup_adm.sh`.
 ## Setup
 
 ```bash
-uv sync                       # CUDA torch (cu124) + diffusers + transformers + torchvision
+uv sync                       # torch + diffusers + transformers + torchvision
 
 # Optional, only for specific backends:
 bash scripts/setup_adm.sh     # ADM: blobfile + git-clone guided_diffusion + 2GB checkpoint
 uv run huggingface-cli login  # DINOv3: gated repo — accept its license first
 ```
+
+On Linux/Windows `uv sync` pulls CUDA 12.4 torch wheels; on macOS it falls back
+to the PyPI (CPU/MPS) build. Without a GPU everything still runs on CPU — the
+feed-forward backends (`vgg`, `convnext`) are tolerably slow; the diffusion
+backends are *very* slow. Pick a device explicitly with `--device cpu|cuda|mps`
+(default: CUDA if available).
 
 First run of each backend downloads its weights from the Hugging Face Hub.
 
@@ -107,26 +115,31 @@ flag, e.g. `uv run --extra adm diffusion-style --backend adm ...`.
 ```bash
 # Single transfer with a chosen backend
 uv run diffusion-style --backend ddpm \
-  --content assets/tetons.jpg --style assets/vangogh.jpg --out out.png
+  --content assets/barn.jpg --style assets/vangogh.jpg --out out.png
 
 # Compare several backends on one pair -> labeled contact sheet
 uv run diffusion-style-compare \
-  --content assets/tetons.jpg --style assets/vangogh.jpg \
+  --content assets/barn.jpg --style assets/vangogh.jpg \
   --outdir outputs/compare --backends vgg,convnext,sd,ddpm
 
 # Sweep the feature timestep (diffusion backends)
-uv run diffusion-style-sweep \
-  --content assets/tetons.jpg --style assets/vangogh.jpg \
+uv run diffusion-style-sweep --backend ddpm \
+  --content assets/barn.jpg --style assets/vangogh.jpg \
   --outdir sweeps/ --timesteps 50,100,261,461
 ```
 
-Sample pairs in `assets/`: `tetons.jpg`+`vangogh.jpg`, `portrait.jpg`+`gris.jpg`,
+Sample pairs in `assets/`: `barn.jpg`+`vangogh.jpg`, `portrait.jpg`+`gris.jpg`,
 `cityscape.jpg`+`kandinsky.jpg`. Curated results per style live in `examples/`
 (the CLI/compare/sweep tools write scratch to `outputs/`, which is gitignored).
 
 Per-backend defaults live in `config.py` (`backend_config`/`_PRESETS`). Override
 any knob via flags: `--timestep`, `--content-weight`, `--style-weight`,
-`--tv-weight`, `--resolution`, `--steps`, `--lr`.
+`--tv-weight`, `--resolution`, `--steps`, `--lr`, `--device`.
+
+Note: inputs are resized to a square `resolution × resolution`, so non-square
+images are distorted (a deliberate simplification — crop beforehand if aspect
+ratio matters). `scripts/sweep_backend.py` is the heavier per-backend
+hyperparameter sweep harness used to tune the presets.
 
 ## Layout
 
@@ -134,7 +147,7 @@ any knob via flags: `--timestep`, `--content-weight`, `--style-weight`,
 |------|------|
 | `config.py` | every knob + per-backend presets (`backend_config`) |
 | `backends/base.py` | `Backend` interface + shared `HookManager` |
-| `backends/{vgg,sd,ddpm,convnext,dinov3,adm}.py` | the lenses |
+| `backends/{vgg,sd,ddpm,convnext,dinov2,dinov3,adm}.py` | the lenses |
 | `images.py` | image <-> tensor/latent helpers (VAE + scaling) |
 | `losses.py` | content + Gram style + total-variation losses |
 | `transfer.py` | the single backend-agnostic optimization engine |
